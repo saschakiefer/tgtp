@@ -3,6 +3,7 @@ package de.saschakiefer.tgtp.core.service;
 import de.saschakiefer.tgtp.core.exception.client.ChatGtpConnectivityException;
 import de.saschakiefer.tgtp.core.model.Message;
 import de.saschakiefer.tgtp.core.service.adapter.CoreChatClient;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,9 +11,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
+    @Getter
     private final List<Message> messages = new ArrayList<>();
 
     @Autowired
@@ -43,5 +46,11 @@ public class ChatService {
                         "Whenever possible, try to be concise. Never go longer unless I ask you to be more detailed. " +
                         "Current date and time is " +
                         new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())));
+    }
+
+    public String getFormattedHistory() {
+        return messages.stream()
+                .map(m -> String.format("%-9s: %s", m.getRole(), m.getContent()))
+                .collect(Collectors.joining("\n"));
     }
 }

@@ -40,7 +40,6 @@ public class ChatGtpClientService implements CoreChatClient {
 
         WebClient webCLient = WebClient.builder()
                 .baseUrl(BASE_URL)
-//				.filter(authenticationFilter)
                 .build();
 
         String message = "Could not get answer from ChatGTP Service";
@@ -49,8 +48,10 @@ public class ChatGtpClientService implements CoreChatClient {
             responseSpec = webCLient
                     .post()
                     .uri(CHAT_COMPLETIONS)
-                    .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                    .headers(h -> h.setBearerAuth(apiToken))
+                    .headers(h -> {
+                        h.setBearerAuth(apiToken);
+                        h.setContentType(MediaType.APPLICATION_JSON);
+                    })
                     .body(Mono.just(completion), CompletionDTO.class)
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, error -> handleError(error, message))

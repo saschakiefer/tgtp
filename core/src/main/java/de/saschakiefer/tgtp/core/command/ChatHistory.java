@@ -5,13 +5,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 
-@ShellComponent
 @RequiredArgsConstructor
-public class Chat {
+@ShellComponent
+public class ChatHistory {
     private final ChatService chatService;
 
-    @ShellMethod(value = "Interactively chat with Chat GTP", key = {"chat", "c"})
-    public String chat(String input) {
-        return chatService.addMessageToChatAndGetResult(input);
+    @ShellMethod(value = "Get the conversation history", key = {"chat-history", "ch"})
+    public String chatHistory() {
+        return chatService.getFormattedHistory();
     }
 }
