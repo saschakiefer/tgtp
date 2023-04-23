@@ -4,6 +4,7 @@ import de.saschakiefer.tgtp.core.exception.client.ChatGtpConnectivityException;
 import de.saschakiefer.tgtp.core.model.Message;
 import de.saschakiefer.tgtp.core.service.adapter.CoreChatClient;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class ChatService {
     @Getter
     private final List<Message> messages = new ArrayList<>();
@@ -50,7 +52,11 @@ public class ChatService {
 
     public String getFormattedHistory() {
         return messages.stream()
-                .map(m -> String.format("%-9s: %s", m.getRole(), m.getContent()))
+                .map(m -> String.format("%9s: %s", m.getRole(), m.getContent()))
                 .collect(Collectors.joining("\n"));
+    }
+
+    public void clearHistory() {
+        messages.clear();
     }
 }
