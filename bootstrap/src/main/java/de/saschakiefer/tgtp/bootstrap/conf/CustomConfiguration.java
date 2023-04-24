@@ -16,4 +16,16 @@ public class CustomConfiguration {
 
     @Value("${tgtp.openai.api.token}")
     private String chatGtpApiToken;
+
+    @Value("${tgtp.spotify.clientId}")
+    private String spotifyClientId;
+
+    @Value("${tgtp.spotify.clientSecret}")
+    private String spotifyClientSecret;
+
+    @Value("${tgtp.spotify.refreshToken}")
+    private String spotifyRefreshToken;
+
+    @Value("${tgtp.spotify.userId}")
+    private String spotifyUserId;
 }

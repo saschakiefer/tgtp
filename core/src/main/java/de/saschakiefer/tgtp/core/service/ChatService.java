@@ -31,6 +31,7 @@ public class ChatService {
         messages.add(new Message("user", input));
         Message response;
         try {
+            log.info("Sending your request to Chat-GTP");
             response = chatClient.getMessageForChatHistory(messages);
         } catch (ChatGtpConnectivityException e) {
             return e.getMessage();
