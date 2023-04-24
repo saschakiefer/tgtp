@@ -3,8 +3,8 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <artifactId>tgtp-bootstrap</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
 
     <parent>
         <groupId>de.saschakiefer</groupId>
@@ -27,6 +27,11 @@
         <dependency>
             <groupId>de.saschakiefer</groupId>
             <artifactId>tgtp-client</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>de.saschakiefer</groupId>
+            <artifactId>tgtp-terminal</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

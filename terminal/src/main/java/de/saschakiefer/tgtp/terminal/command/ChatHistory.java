@@ -1,4 +1,4 @@
-package de.saschakiefer.tgtp.core.command;
+package de.saschakiefer.tgtp.terminal.command;
 
 import de.saschakiefer.tgtp.core.service.ChatService;
 import lombok.RequiredArgsConstructor;
