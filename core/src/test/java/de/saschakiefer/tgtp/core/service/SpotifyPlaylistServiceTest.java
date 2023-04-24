@@ -32,7 +32,7 @@ class SpotifyPlaylistServiceTest {
     void createPlaylist_withResult_shouldReturnListOfSongs() {
 
         // Arrange
-        when(chatService.addMessageToChatAndGetResult(any())).thenReturn(getPlaylistResult());
+        when(chatService.addMessageToChatAndGetResponse(any())).thenReturn(new Message("assistant", getPlaylistResult()));
 
         // Act
         List<Song> result = playlistService.createPlaylist(
@@ -48,7 +48,7 @@ class SpotifyPlaylistServiceTest {
 
         // Arrange
         String message = "I'm sorry, I cannot generate a playlist for the \"top ten Heavy Metal hits from 2022\" as it is currently 2023 and there is no data available for Heavy Metal hits from 2022.";
-        when(chatService.addMessageToChatAndGetResult(any())).thenReturn(message);
+        when(chatService.addMessageToChatAndGetResponse(any())).thenReturn(new Message("assistant", message));
         when(chatService.getMessages()).thenReturn(List.of(new Message("assistant", message)));
 
         // Act + Assert

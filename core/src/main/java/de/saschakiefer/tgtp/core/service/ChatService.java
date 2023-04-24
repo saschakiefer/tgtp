@@ -23,21 +23,16 @@ public class ChatService {
     @Autowired
     private CoreChatClient chatClient;
 
-    public String addMessageToChatAndGetResult(String input) {
+    public Message addMessageToChatAndGetResponse(String input) throws ChatGtpConnectivityException {
         if (messages.size() == 0) {
             initializeChat();
         }
 
         messages.add(new Message("user", input));
-        Message response;
-        try {
-            log.info("Sending your request to Chat-GTP");
-            response = chatClient.getMessageForChatHistory(messages);
-        } catch (ChatGtpConnectivityException e) {
-            return e.getMessage();
-        }
+        log.info("Sending your request to Chat-GTP");
+        Message response = chatClient.getMessageForChatHistory(messages);
         messages.add(response);
-        return response.getContent();
+        return response;
     }
 
     public void initializeChat() {

@@ -104,7 +104,7 @@ public class SpotifyPlaylistService {
     }
 
     private StringBuilder getPlaylistFromChatGtp(String definition) {
-        String gtpResponse = chatService.addMessageToChatAndGetResult(generateRequest(definition));
+        String gtpResponse = chatService.addMessageToChatAndGetResponse(generateRequest(definition)).getContent();
 
         Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
         Matcher matcher = pattern.matcher(gtpResponse);
