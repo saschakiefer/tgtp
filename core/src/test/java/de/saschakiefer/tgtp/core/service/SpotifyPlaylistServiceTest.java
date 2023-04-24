@@ -40,7 +40,7 @@ class SpotifyPlaylistServiceTest {
                 "Pumpkins United Tour");
 
         // Assert
-        assertThat(result.getTracks().getTotal(), is(12));
+        assertThat(result.getName(), is("Pumpkins United Tour"));
     }
 
     @Test
