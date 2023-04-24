@@ -8,6 +8,8 @@ import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
 import org.springframework.shell.standard.commands.History;
 
+import java.util.stream.Collectors;
+
 @ShellComponent
 @RequiredArgsConstructor
 @Slf4j
@@ -21,6 +23,13 @@ public class ChatHistory implements History.Command {
             log.info("Chat history is cleared");
         }
 
-        return chatService.getFormattedHistory();
+        return getFormattedHistory();
+    }
+
+    private String getFormattedHistory() {
+        return chatService.getMessages()
+                .stream()
+                .map(m -> String.format("%9s: %s", m.getRole(), m.getContent()))
+                .collect(Collectors.joining("\n"));
     }
 }

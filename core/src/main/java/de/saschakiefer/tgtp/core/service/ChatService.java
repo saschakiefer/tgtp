@@ -12,7 +12,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -35,7 +34,11 @@ public class ChatService {
         return response;
     }
 
-    public void initializeChat() {
+    public void clearHistory() {
+        messages.clear();
+    }
+
+    private void initializeChat() {
         messages.clear();
         messages.add(new Message(
                 "system",
@@ -44,15 +47,5 @@ public class ChatService {
                         "Whenever possible, try to be concise. Never go longer unless I ask you to be more detailed. " +
                         "Current date and time is " +
                         new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())));
-    }
-
-    public String getFormattedHistory() {
-        return messages.stream()
-                .map(m -> String.format("%9s: %s", m.getRole(), m.getContent()))
-                .collect(Collectors.joining("\n"));
-    }
-
-    public void clearHistory() {
-        messages.clear();
     }
 }

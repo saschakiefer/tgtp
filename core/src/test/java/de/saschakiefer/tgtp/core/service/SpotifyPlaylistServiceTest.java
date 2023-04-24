@@ -3,13 +3,13 @@ package de.saschakiefer.tgtp.core.service;
 import de.saschakiefer.tgtp.core.TestConfig;
 import de.saschakiefer.tgtp.core.exception.client.PlaylistCreationException;
 import de.saschakiefer.tgtp.core.model.Message;
-import de.saschakiefer.tgtp.core.model.Song;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import se.michaelthelin.spotify.model_objects.specification.Playlist;
 
 import java.util.List;
 
@@ -35,12 +35,12 @@ class SpotifyPlaylistServiceTest {
         when(chatService.addMessageToChatAndGetResponse(any())).thenReturn(new Message("assistant", getPlaylistResult()));
 
         // Act
-        List<Song> result = playlistService.createPlaylist(
+        Playlist result = playlistService.createPlaylist(
                 "All the songs Halloween played at their Pumpkins United Tour in Stuttgart",
                 "Pumpkins United Tour");
 
         // Assert
-        assertThat(result.size(), is(12));
+        assertThat(result.getTracks().getTotal(), is(12));
     }
 
     @Test

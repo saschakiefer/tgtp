@@ -1,5 +1,6 @@
 package de.saschakiefer.tgtp.core.service;
 
+import de.saschakiefer.tgtp.core.exception.client.ChatGtpConnectivityException;
 import de.saschakiefer.tgtp.core.exception.client.PlaylistCreationException;
 import de.saschakiefer.tgtp.core.model.Song;
 import lombok.RequiredArgsConstructor;
@@ -48,62 +49,26 @@ public class SpotifyPlaylistService {
 
     private SpotifyApi spotifyApi;
 
-    public List<Song> createPlaylist(String definition, String name) throws PlaylistCreationException {
+    public Playlist createPlaylist(String definition, String name) throws PlaylistCreationException {
+
+        String gtpPlaylist = "";
+        List<Song> playlist;
         try {
-            initializeSpotifyApi();
-
-            StringBuilder gtpPlaylist = getPlaylistFromChatGtp(definition);
-
-            List<Song> playlist = Arrays.stream(gtpPlaylist.toString().split("\n"))
+            gtpPlaylist = getPlaylistFromChatGtp(definition);
+            playlist = Arrays.stream(gtpPlaylist.split("\n"))
                     .map(this::getSong)
-                    .collect(Collectors.toList());
-
+                    .toList();
             log.debug(playlist.stream().map(Song::toString).collect(Collectors.joining(", ")));
-
-            createSpotifyPlaylist(name, playlist);
-
-            return playlist;
-        } catch (IOException | SpotifyWebApiException | ParseException e) {
-            throw new PlaylistCreationException(e.getMessage());
         } catch (RuntimeException e) {
-            throw new PlaylistCreationException(
-                    chatService.getMessages().get(chatService.getMessages().size() - 1).getContent(), e);
+            throw new PlaylistCreationException("Could not parse the response from Chat GTP: " + gtpPlaylist);
         }
+
+        initializeSpotifyApi();
+        return createSpotifyPlaylist(name, playlist);
     }
 
-    private void initializeSpotifyApi() throws IOException, ParseException, SpotifyWebApiException {
+    private String getPlaylistFromChatGtp(String definition) throws ChatGtpConnectivityException {
 
-        spotifyApi = new SpotifyApi.Builder()
-                .setClientId(spotifyClientId)
-                .setClientSecret(spotifyClientSecret)
-                .setRefreshToken(spotifyRefreshToken)
-                .build();
-
-        AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh()
-                .build();
-        AuthorizationCodeCredentials authorizationCodeCredentials = authorizationCodeRefreshRequest.execute();
-
-        spotifyApi.setAccessToken(authorizationCodeCredentials.getAccessToken());
-    }
-
-    private Song getSong(String line) {
-        String[] lineParts = line.split(" %%SEPARATOR%% ");
-        return new Song(lineParts[0], lineParts[1], lineParts[2]);
-    }
-
-    private Playlist createSpotifyPlaylist(String name, List<Song> playlist) throws IOException, SpotifyWebApiException, ParseException {
-        Playlist spotifyPlaylist = spotifyApi.createPlaylist(spotifyUserId, name)
-                .build()
-                .execute();
-
-        log.info("Created playlist '{}' ({})", spotifyPlaylist.getName(), spotifyPlaylist.getExternalUrls().get("spotify"));
-
-        addToSpotifyPlaylist(spotifyPlaylist, playlist);
-
-        return spotifyPlaylist;
-    }
-
-    private StringBuilder getPlaylistFromChatGtp(String definition) {
         String gtpResponse = chatService.addMessageToChatAndGetResponse(generateRequest(definition)).getContent();
 
         Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
@@ -116,10 +81,50 @@ public class SpotifyPlaylistService {
         }
 
         log.debug(String.valueOf(gtpPlaylist));
-        return gtpPlaylist;
+        return gtpPlaylist.toString();
     }
 
-    private void addToSpotifyPlaylist(Playlist spotifyPlaylist, List<Song> playlist) {
+    private Song getSong(String line) {
+
+        String[] lineParts = line.split(" %%SEPARATOR%% ");
+        return new Song(lineParts[0], lineParts[1], lineParts[2]);
+    }
+
+    private void initializeSpotifyApi() throws PlaylistCreationException {
+
+        try {
+            spotifyApi = new SpotifyApi.Builder()
+                    .setClientId(spotifyClientId)
+                    .setClientSecret(spotifyClientSecret)
+                    .setRefreshToken(spotifyRefreshToken)
+                    .build();
+
+            AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh()
+                    .build();
+            AuthorizationCodeCredentials authorizationCodeCredentials = authorizationCodeRefreshRequest.execute();
+
+            spotifyApi.setAccessToken(authorizationCodeCredentials.getAccessToken());
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            throw new PlaylistCreationException(e.getMessage());
+        }
+    }
+
+    private Playlist createSpotifyPlaylist(String name, List<Song> playlist) throws PlaylistCreationException {
+
+        try {
+            Playlist spotifyPlaylist = spotifyApi.createPlaylist(spotifyUserId, name)
+                    .build()
+                    .execute();
+
+            addSongsToSpotifyPlaylist(spotifyPlaylist, playlist);
+            return spotifyPlaylist;
+        } catch (IOException | SpotifyWebApiException | ParseException e) {
+            throw new PlaylistCreationException(e.getMessage());
+        }
+    }
+
+    private void addSongsToSpotifyPlaylist(Playlist spotifyPlaylist, List<Song> playlist) {
+
         String[] uris = playlist.stream()
                 .map(this::searchSpotifySong)
                 .filter(Objects::nonNull)
@@ -132,21 +137,8 @@ public class SpotifyPlaylistService {
         }
     }
 
-    private String generateRequest(String playlistDefinition) {
-        String fullMessage = """
-                Generate a playlist with the following criteria:
-                %%PLACEHOLDER%%
-                These songs must be real and not a product of your imagination.
-                The playlist should be a list of text with each line in this format: Artist Name %%SEPARATOR%% Song Name %%SEPARATOR%% Album
-                That's the name of the artist for the song, followed by a space, followed by %%SEPARATOR%%, followed by a space, followed by the name of the song, followed by a space, followed by %%SEPARATOR%%, followed by a space, followed by the name of the album. Follow exactly this definition.
-                Use newline characters to separate each line.
-                I specifically ask, that the list format follows this definition.
-                I specifically ask, that the response only contains the plain list of text with no additional sentences, no notes, no introduction message. Nothing before the list and nothing after the list. Just the list.""";
-
-        return fullMessage.replace("%%PLACEHOLDER%%", playlistDefinition);
-    }
-
     private String searchSpotifySong(Song song) {
+
         try {
             Paging<Track> trackPaging = spotifyApi.searchTracks(
                             URLEncoder.encode(
@@ -161,5 +153,20 @@ public class SpotifyPlaylistService {
             log.warn(e.getMessage());
             return null;
         }
+    }
+
+    private String generateRequest(String playlistDefinition) {
+
+        String fullMessage = """
+                Generate a playlist with the following criteria:
+                %%PLACEHOLDER%%
+                These songs must be real and not a product of your imagination.
+                The playlist should be a list of text with each line in this format: Artist Name %%SEPARATOR%% Song Name %%SEPARATOR%% Album
+                That's the name of the artist for the song, followed by a space, followed by %%SEPARATOR%%, followed by a space, followed by the name of the song, followed by a space, followed by %%SEPARATOR%%, followed by a space, followed by the name of the album. Follow exactly this definition.
+                Use newline characters to separate each line.
+                I specifically ask, that the list format follows this definition.
+                I specifically ask, that the response only contains the plain list of text with no additional sentences, no notes, no introduction message. Nothing before the list and nothing after the list. Just the list.""";
+
+        return fullMessage.replace("%%PLACEHOLDER%%", playlistDefinition);
     }
 }
