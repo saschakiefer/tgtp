@@ -3,21 +3,19 @@ package de.saschakiefer.tgtp.core.service;
 import de.saschakiefer.tgtp.core.TestConfig;
 import de.saschakiefer.tgtp.core.exception.client.PlaylistCreationException;
 import de.saschakiefer.tgtp.core.model.Message;
+import de.saschakiefer.tgtp.core.service.adapter.CoreSpotifyClient;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import se.michaelthelin.spotify.model_objects.specification.Playlist;
 
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest(classes = TestConfig.class)
 @ExtendWith(SpringExtension.class)
@@ -28,19 +26,22 @@ class SpotifyPlaylistServiceTest {
     @MockBean
     ChatService chatService;
 
+    @MockBean
+    CoreSpotifyClient spotifyClient;
+
     @Test
-    void createPlaylist_withResult_shouldReturnListOfSongs() {
+    void createPlaylist_withResult_shouldNotThrowAnyException() {
 
         // Arrange
         when(chatService.addMessageToChatAndGetResponse(any())).thenReturn(new Message("assistant", getPlaylistResult()));
 
         // Act
-        Playlist result = playlistService.createPlaylist(
+        playlistService.createPlaylist(
                 "All the songs Halloween played at their Pumpkins United Tour in Stuttgart",
                 "Pumpkins United Tour");
 
         // Assert
-        assertThat(result.getName(), is("Pumpkins United Tour"));
+        verify(spotifyClient, times(1)).createSpotifyPlaylist(any(), any());
     }
 
     @Test

@@ -34,7 +34,7 @@ tgtp.spotify.userId=<user ID>
 ## Build
 
 ```shell
-mvn clean package -Pnative -DskipTests
+mvn clean package -Pnative
 ```
 
 ## Run
@@ -49,5 +49,5 @@ java -jar ./bootstrap/target/tgtp-exec.jar
 
 - use `help` to get an overview of the available commands
 - use `help <command>` to get details of the command
-- when you use the `chat` command you have to wrap quotes (`'`, `'''`, `"` or `"""`) around the text. Spring Shell
-  supports multi line queries
+- when your message provided for a command has multiple words you have to wrap quotes around the text. Spring Shell
+  supports multi line queries. Allowed quotes are:  `'`, `'''`, `"` or `"""`

@@ -5,7 +5,6 @@ import de.saschakiefer.tgtp.core.model.Message;
 import de.saschakiefer.tgtp.core.service.adapter.CoreChatClient;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
@@ -19,8 +18,11 @@ public class ChatService {
     @Getter
     private final List<Message> messages = new ArrayList<>();
 
-    @Autowired
-    private CoreChatClient chatClient;
+    private final CoreChatClient chatClient;
+
+    public ChatService(CoreChatClient chatClient) {
+        this.chatClient = chatClient;
+    }
 
     public Message addMessageToChatAndGetResponse(String input) throws ChatGtpConnectivityException {
         if (messages.size() == 0) {

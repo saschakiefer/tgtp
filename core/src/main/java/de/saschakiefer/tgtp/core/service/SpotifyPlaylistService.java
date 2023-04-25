@@ -2,26 +2,15 @@ package de.saschakiefer.tgtp.core.service;
 
 import de.saschakiefer.tgtp.core.exception.client.ChatGtpConnectivityException;
 import de.saschakiefer.tgtp.core.exception.client.PlaylistCreationException;
+import de.saschakiefer.tgtp.core.model.Playlist;
 import de.saschakiefer.tgtp.core.model.Song;
+import de.saschakiefer.tgtp.core.service.adapter.CoreSpotifyClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hc.core5.http.ParseException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import se.michaelthelin.spotify.SpotifyApi;
-import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
-import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
-import se.michaelthelin.spotify.model_objects.specification.Paging;
-import se.michaelthelin.spotify.model_objects.specification.Playlist;
-import se.michaelthelin.spotify.model_objects.specification.Track;
-import se.michaelthelin.spotify.requests.authorization.authorization_code.AuthorizationCodeRefreshRequest;
 
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -34,38 +23,26 @@ public class SpotifyPlaylistService {
     private static final String regex = ".+%%SEPARATOR%%.+";
 
     private final ChatService chatService;
+    private final CoreSpotifyClient spotifyClient;
 
-    @Value("${tgtp.spotify.clientId}")
-    private String spotifyClientId;
-
-    @Value("${tgtp.spotify.clientSecret}")
-    private String spotifyClientSecret;
-
-    @Value("${tgtp.spotify.refreshToken}")
-    private String spotifyRefreshToken;
-
-    @Value("${tgtp.spotify.userId}")
-    private String spotifyUserId;
-
-    private SpotifyApi spotifyApi;
 
     public Playlist createPlaylist(String definition, String name) throws PlaylistCreationException {
 
         String gtpPlaylist = "";
-        List<Song> playlist;
+        List<Song> songs;
         try {
             gtpPlaylist = getPlaylistFromChatGtp(definition);
-            playlist = Arrays.stream(gtpPlaylist.split("\n"))
+            songs = Arrays.stream(gtpPlaylist.split("\n"))
                     .map(this::getSong)
                     .toList();
-            log.debug(playlist.stream().map(Song::toString).collect(Collectors.joining(", ")));
+            log.debug(songs.stream().map(Song::toString).collect(Collectors.joining(", ")));
         } catch (RuntimeException e) {
             throw new PlaylistCreationException("Could not parse the response from Chat GTP: " + gtpPlaylist);
         }
 
-        initializeSpotifyApi();
-        return createSpotifyPlaylist(name, playlist);
+        return spotifyClient.createSpotifyPlaylist(name, songs);
     }
+
 
     private String getPlaylistFromChatGtp(String definition) throws ChatGtpConnectivityException {
 
@@ -84,76 +61,13 @@ public class SpotifyPlaylistService {
         return gtpPlaylist.toString();
     }
 
+
     private Song getSong(String line) {
 
         String[] lineParts = line.split(" %%SEPARATOR%% ");
         return new Song(lineParts[0], lineParts[1], lineParts[2]);
     }
 
-    private void initializeSpotifyApi() throws PlaylistCreationException {
-
-        try {
-            spotifyApi = new SpotifyApi.Builder()
-                    .setClientId(spotifyClientId)
-                    .setClientSecret(spotifyClientSecret)
-                    .setRefreshToken(spotifyRefreshToken)
-                    .build();
-
-            AuthorizationCodeRefreshRequest authorizationCodeRefreshRequest = spotifyApi.authorizationCodeRefresh()
-                    .build();
-            AuthorizationCodeCredentials authorizationCodeCredentials = authorizationCodeRefreshRequest.execute();
-
-            spotifyApi.setAccessToken(authorizationCodeCredentials.getAccessToken());
-        } catch (IOException | SpotifyWebApiException | ParseException e) {
-            throw new PlaylistCreationException(e.getMessage());
-        }
-    }
-
-    private Playlist createSpotifyPlaylist(String name, List<Song> playlist) throws PlaylistCreationException {
-
-        try {
-            Playlist spotifyPlaylist = spotifyApi.createPlaylist(spotifyUserId, name)
-                    .build()
-                    .execute();
-
-            addSongsToSpotifyPlaylist(spotifyPlaylist, playlist);
-            return spotifyPlaylist;
-        } catch (IOException | SpotifyWebApiException | ParseException e) {
-            throw new PlaylistCreationException(e.getMessage());
-        }
-    }
-
-    private void addSongsToSpotifyPlaylist(Playlist spotifyPlaylist, List<Song> playlist) {
-
-        String[] uris = playlist.stream()
-                .map(this::searchSpotifySong)
-                .filter(Objects::nonNull)
-                .toArray(String[]::new);
-
-        try {
-            spotifyApi.addItemsToPlaylist(spotifyPlaylist.getId(), uris).build().execute();
-        } catch (IOException | SpotifyWebApiException | ParseException e) {
-            log.error(e.getMessage());
-        }
-    }
-
-    private String searchSpotifySong(Song song) {
-
-        try {
-            Paging<Track> trackPaging = spotifyApi.searchTracks(
-                            URLEncoder.encode(
-                                    String.format("title:%s album:%s artist:%s", song.getTitle(), song.getAlbum(), song.getArtist()),
-                                    StandardCharsets.UTF_8))
-                    .limit(1)
-                    .build()
-                    .execute();
-
-            return trackPaging.getItems()[0].getUri();
-        } catch (IOException | SpotifyWebApiException | ParseException e) {
-            log.warn(e.getMessage());
-            return null;
-        }
-    }
 
     private String generateRequest(String playlistDefinition) {
 
